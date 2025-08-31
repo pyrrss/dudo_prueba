@@ -13,7 +13,9 @@ class GestorPartida:
         self.cacho_actual = None
         self.apuesta_actual = (0, 0)
         self.estado_especial = False
+        self.estado_especial_pendiente = False
         self.tipo_ronda_especial = None
+        self.tipo_ronda_especial_pendiente = None
         self.direccion = None
         self.validador_apuesta = ValidadorApuesta()
         self.ultimo_apostador = None
@@ -47,15 +49,18 @@ class GestorPartida:
         if self.direccion is None:
             self.direccion = "horario"
         indice_actual = self.lista_cachos.index(self.cacho_actual)
-
-        while True: # -> hasta encontrar jugador válido (con dados)
+        num_cachos = len(self.lista_cachos)
+        
+        for _ in range(num_cachos):
             if self.direccion == "horario":
-                indice_actual = (indice_actual + 1) % len(self.lista_cachos)
+                indice_actual = (indice_actual + 1) % num_cachos
             else:
-                indice_actual = (indice_actual - 1) % len(self.lista_cachos)
+                indice_actual = (indice_actual - 1) % num_cachos
 
-            if self.lista_cachos[indice_actual].get_cantidad_dados() > 0:
-                return self.lista_cachos[indice_actual]
+            siguiente_cacho = self.lista_cachos[indice_actual]
+            if siguiente_cacho.get_cantidad_dados() > 0:
+                return siguiente_cacho
+        return None
 
     # NOTE: esto devuelve el primer cacho que tenga un dado
     def _verificar_cachos_con_un_dado(self) -> Cacho:
@@ -76,12 +81,15 @@ class GestorPartida:
             cacho.agitar()
             cacho.ocultar_dados() # -> visibilidad se ajusta luego en cada turno
 
-    def _terminar_ronda(self) -> None:
-        if self.estado_especial:
+        # -> activar ronda especial si estaba pendiente
+        if getattr(self, "estado_especial_pendiente", False):
+            self.estado_especial = True
+            self.tipo_ronda_especial = self.tipo_ronda_especial_pendiente
+            self.estado_especial_pendiente = False
+        else:
             self.estado_especial = False
             self.tipo_ronda_especial = None
             self.cacho_que_obligo = None
-            self._actualizar_visibilidad_dados()
 
     def _partida_terminada(self) -> bool:
         cachos_con_dados = [c for c in self.lista_cachos if c.get_cantidad_dados() > 0]
@@ -90,6 +98,16 @@ class GestorPartida:
     def _obtener_ganador(self) -> Cacho:
         cachos_con_dados = [c for c in self.lista_cachos if c.get_cantidad_dados() > 0]
         return cachos_con_dados[0] if cachos_con_dados else None
+
+    def _verificar_ronda_especial(self, cacho: Cacho) -> None:
+        if cacho.get_cantidad_dados() == 1 and cacho not in self.cachos_que_usaron_especial:
+            self.cacho_que_obligo = cacho
+            self.tipo_ronda_especial_pendiente = self.interfaz.pedir_tipo_ronda_especial(self.lista_cachos.index(cacho))
+            self.estado_especial_pendiente = True
+            self.cachos_que_usaron_especial.add(cacho)
+            self._actualizar_visibilidad_dados()
+            print(f"El Jugador {self.lista_cachos.index(cacho) + 1} obliga ronda {self.tipo_ronda_especial_pendiente}")
+            input("Presiona ENTER para continuar...")
 
     def _manejar_apuesta(self):
         while True: # -> hasta que se ingrese apuesta válida
@@ -104,93 +122,69 @@ class GestorPartida:
                 print("También puedes transformar tu apuesta a ases")
 
     def _manejar_duda(self):
+        # NOTE: al hacer copy, los cachos de la copia siguen siendo los mismos que los de la lista original
         lista_cachos_previa = self.lista_cachos.copy()
-
-        for cacho in lista_cachos_previa:
-            cacho.mostrar_dados()
         
-        print(f"DEBUG: apostador: {self.lista_cachos.index(self.ultimo_apostador) + 1}, dudador: {self.lista_cachos.index(self.cacho_actual) + 1}")
+        self.interfaz.imprimir_revelacion(lista_cachos_previa, self.apuesta_actual)
 
         perdedor = self.arbitro_ronda.manejar_duda(
             self.lista_cachos,
             self.apuesta_actual,
             self.ultimo_apostador,
-            self.cacho_actual
+            self.cacho_actual,
+            self.estado_especial
         )
         print(f"El Jugador {self.lista_cachos.index(perdedor) + 1} pierde un dado")
-        self.interfaz.imprimir_valores(lista_cachos_previa, self.apuesta_actual)
 
         self.iniciador_proxima_ronda = perdedor
 
         input("Presiona ENTER para continuar...")
+        
+        self._verificar_ronda_especial(perdedor)
 
-        if perdedor.get_cantidad_dados() == 1 and perdedor not in self.cachos_que_usaron_especial:
-            self.estado_especial = True
-            self.cacho_que_obligo = perdedor
-            tipo = self.interfaz.pedir_tipo_ronda_especial(self.lista_cachos.index(perdedor))
-            self.tipo_ronda_especial = "abierto" if tipo in ["a", "abierto"] else "cerrado"
-            self.cachos_que_usaron_especial.add(perdedor)
-            self._actualizar_visibilidad_dados()
-            print(f"El Jugador {self.lista_cachos.index(perdedor) + 1} obliga ronda {self.tipo_ronda_especial}")
-            input("Presiona ENTER para continuar...")
-    
     def _manejar_calzar(self):
         lista_cachos_previa = self.lista_cachos.copy()
-
-        for cacho in lista_cachos_previa:
-            cacho.mostrar_dados()
+        
+        self.interfaz.imprimir_revelacion(lista_cachos_previa, self.apuesta_actual)
 
         gana_dado = self.arbitro_ronda.manejar_calzar(
                 self.lista_cachos,
                 self.apuesta_actual,
                 self.ultimo_apostador,
-                self.cacho_actual
+                self.cacho_actual,
+                self.estado_especial
         )
         if gana_dado:
             print(f"El jugador {self.jugador_idx + 1} gana un dado")
         else:
             print(f"El jugador {self.jugador_idx + 1} pierde un dado")
 
-        self.interfaz.imprimir_valores(lista_cachos_previa, self.apuesta_actual)
-
         input("Presiona ENTER para continuar...")
 
         self.iniciador_proxima_ronda = self.cacho_actual
 
-        if self.cacho_actual.get_cantidad_dados() == 1 and self.cacho_actual not in self.cachos_que_usaron_especial:
-            self.estado_especial = True
-            self.cacho_que_obligo = self.cacho_actual
-            tipo = self.interfaz.pedir_tipo_ronda_especial(self.lista_cachos.index(self.cacho_actual))
-            self.tipo_ronda_especial = "abierto" if tipo in ["a", "abierto"] else "cerrado"
-            self.cachos_que_usaron_especial.add(self.cacho_actual)
-            self._actualizar_visibilidad_dados()
-            print(f"El Jugador {self.lista_cachos.index(self.cacho_actual) + 1} obliga ronda {self.tipo_ronda_especial}")
-            input("Presiona ENTER para continuar...")
+        self._verificar_ronda_especial(self.cacho_actual)
 
     def _actualizar_visibilidad_dados(self) -> None:
+        
+        for cacho in self.lista_cachos:
+            cacho.ocultar_dados()
+
         if self.estado_especial and self.tipo_ronda_especial == "abierto":
             # -> abierto: el jugador actual no ve sus dados, pero sí los de los demás
             for cacho in self.lista_cachos:
-                if cacho == self.cacho_actual:
-                    cacho.ocultar_dados()
-                else:
+                if cacho is not self.cacho_actual:
                     cacho.mostrar_dados()
 
         elif self.estado_especial and self.tipo_ronda_especial == "cerrado":
             # -> cerrado: sólo el obligador ve sus dados, los demás no ven nada, tampoco en su propio turno
-            for cacho in self.lista_cachos:
-                if cacho == self.cacho_que_obligo:
-                    cacho.mostrar_dados()
-                else:
-                    cacho.ocultar_dados()
+            if self.cacho_que_obligo is not None and self.cacho_que_obligo is self.cacho_actual:
+                self.cacho_que_obligo.mostrar_dados()
 
         else:
             # -> ronda normal: cada jugador ve sólo sus propios dados en su turno
-            for cacho in self.lista_cachos:
-                if cacho == self.cacho_actual:
-                    cacho.mostrar_dados()
-                else:
-                    cacho.ocultar_dados()
+            if self.cacho_actual is not None:
+                self.cacho_actual.mostrar_dados()
 
     def jugar(self) -> None:
         # TODO: printear elementos de 'interfaz' a la terminal
@@ -215,11 +209,14 @@ class GestorPartida:
             # -> ronda en curso
             ronda_terminada = False
             while not ronda_terminada:
+                while self.cacho_actual.get_cantidad_dados() == 0:
+                    self.cacho_actual = self._obtener_siguiente_cacho()
+            
                 self.interfaz.limpiar_terminal()
                 self.jugador_idx = self.lista_cachos.index(self.cacho_actual)
 
                 self._actualizar_visibilidad_dados()
-                self.interfaz.imprimir_estado(self.lista_cachos, self.cacho_actual, self.apuesta_actual, num_ronda)
+                self.interfaz.imprimir_estado(self.lista_cachos, self.cacho_actual, self.apuesta_actual, self.tipo_ronda_especial, num_ronda)
 
                 # -> hasta que jugador actual haga acción válida
                 while True:
@@ -234,7 +231,6 @@ class GestorPartida:
                             print("No puedes dudar sin apuesta")
                             continue
                         self._manejar_duda()
-                        self._terminar_ronda()
                         ronda_terminada = True
                         time.sleep(1)
                         break
@@ -248,7 +244,6 @@ class GestorPartida:
                             continue
 
                         self._manejar_calzar()
-                        self._terminar_ronda()
                         ronda_terminada = True
                         time.sleep(1)
                         break

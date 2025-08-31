@@ -6,7 +6,7 @@ class ArbitroRonda:
         self.contador_pintas = ContadorPintas()
 
     # NOTE: se puede evaluar si es que es útil que este método devuelva el cacho perdedor
-    def manejar_duda(self, lista_cachos: list[Cacho], apuesta: tuple[int, int], apostador: Cacho, dudador: Cacho) -> Cacho:
+    def manejar_duda(self, lista_cachos: list[Cacho], apuesta: tuple[int, int], apostador: Cacho, dudador: Cacho, ronda_especial: bool = False) -> Cacho:
         # TODO: ver cómo manejar luego rondas especiales donde no se cuenten los ases acá
         cantidad_total = self._contar_total(lista_cachos, apuesta[1])
 
@@ -20,7 +20,7 @@ class ArbitroRonda:
             return apostador
 
     # NOTE: apostador no está siendo usado 
-    def manejar_calzar(self, lista_cachos: list[Cacho], apuesta: tuple[int, int], apostador: Cacho, calzador: Cacho) -> bool:
+    def manejar_calzar(self, lista_cachos: list[Cacho], apuesta: tuple[int, int], apostador: Cacho, calzador: Cacho, ronda_especial: bool = False) -> bool:
         cantidad_total = self._contar_total(lista_cachos, apuesta[1])
 
         if cantidad_total == apuesta[0]:
@@ -30,13 +30,14 @@ class ArbitroRonda:
             calzador.quitar_dado()
             return False
 
-    def _contar_total(self, lista_cachos: list[Cacho], pinta: int) -> int:
+    def _contar_total(self, lista_cachos: list[Cacho], pinta: int, ronda_especial: bool = False) -> int:
         lista_valores = []
         for cacho in lista_cachos:
             for dado in cacho.dados:
                 lista_valores.append(dado.valor_actual)
-
-        cantidad_total = self.contador_pintas.contar_apariciones(lista_valores, pinta)
+        
+        # -> si ronda_especial es True, luego ases_comodines = False, y viceversa
+        cantidad_total = self.contador_pintas.contar_apariciones(lista_valores, pinta, not ronda_especial)
         return cantidad_total
 
     def puede_calzar(self, lista_cachos: list[Cacho], calzador: Cacho) -> bool:

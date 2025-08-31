@@ -1,5 +1,6 @@
 import os
 from src.juego.cacho import Cacho
+from src.juego.dado import Dado
 
 class InterfazConsola:
 
@@ -70,22 +71,33 @@ class InterfazConsola:
 
         return eleccion
 
-    def imprimir_estado(self, lista_cachos: list[Cacho], jugador_actual: Cacho, apuesta: tuple[int, int], num_ronda: int) -> None:
+    def imprimir_estado(self, lista_cachos: list[Cacho], jugador_actual: Cacho, apuesta: tuple[int, int], tipo_ronda: str, num_ronda: int) -> None:
         print(f"\nRONDA {num_ronda}")
+        print(f"\nTIPO DE RONDA: {tipo_ronda if tipo_ronda in ['abierto', 'cerrado'] else 'normal'}")
         print("\n Estado de los jugadores:")
-        print(f"Apuesta: {apuesta if apuesta != (0, 0) else 'Ninguna'}")
 
-        # NOTE: imprimir valores de dados aca? no se cómo manejar lo de ocultar/mostrar en interfaz
+        if apuesta != (0, 0):
+            cantidad = apuesta[0]
+            pinta = apuesta[1]
+            nombre_pinta = Dado.get_nombre_pinta(pinta, cantidad).lower()
+            string_apuesta = f"{cantidad} {nombre_pinta}"
+        else:
+            string_apuesta = "Ninguna"
+
+        print(f"Apuesta: {string_apuesta}")
+
         for cacho in lista_cachos:
             print(f"Jugador {lista_cachos.index(cacho) + 1}: {cacho.get_valores()}")
 
         print("\n")
 
-    def imprimir_valores(self, lista_cachos: list[Cacho], apuesta: tuple[int, int]) -> None:
+    def imprimir_revelacion(self, lista_cachos: list[Cacho], apuesta: tuple[int, int]) -> None:
         print(f"\nLa apuesta especulada era: {apuesta}")
         print("\nLos valores de los dados eran: ")
+
+        # -> se imprimen los valores ignorando su visibilidad
         for cacho in lista_cachos:
-            print(f"Jugador {lista_cachos.index(cacho) + 1}: {cacho.get_valores()}")
+            print(f" Jugador {lista_cachos.index(cacho) + 1}: {[dado.valor_actual for dado in cacho.dados]}")
 
     def pedir_accion(self, jugador_idx: int) -> str:
         print(f"\nTurno del Jugador {jugador_idx + 1}")
@@ -112,7 +124,15 @@ class InterfazConsola:
 
     def pedir_apuesta(self, jugador_idx: int, apuesta_actual: tuple[int, int]) -> tuple[int, int]:
         print(f"\nJugador {jugador_idx + 1}, elige una nueva apuesta:")
-        print(f"Apuesta actual: {apuesta_actual if apuesta_actual != (0, 0) else 'Ninguna'}")
+        if apuesta_actual != (0, 0):
+            cantidad = apuesta_actual[0]
+            pinta = apuesta_actual[1]
+            nombre_pinta = Dado.get_nombre_pinta(pinta, cantidad).lower()
+            string_apuesta = f"{cantidad} {nombre_pinta}"
+        else:
+            string_apuesta = "Ninguna"
+
+        print(f"Apuesta actual: {string_apuesta}")
 
         while True:
             try:
