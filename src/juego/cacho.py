@@ -43,6 +43,11 @@ class Cacho:
             print("ERROR: número de valores no coincide con número de dados")
             return
 
+        for valor in valores:
+            if valor not in range(1, 7) or not isinstance(valor, int):
+                print("ERROR: lista de valores inválida")
+                return
+
         for i, dado in enumerate(self.dados):
             dado.valor_actual = valores[i]
 
