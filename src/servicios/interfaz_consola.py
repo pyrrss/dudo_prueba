@@ -109,9 +109,9 @@ class InterfazConsola:
 
         while True: # -> hasta que haya eleccón válida
             eleccion = input("¿Qué eliges?: ").strip().lower()
-            if eleccion in ["a", "abierto"]:
+            if eleccion == "a":
                 return "abierto"
-            if eleccion in ["c", "cerrado"]:
+            if eleccion == "c":
                 return "cerrado"
 
             print("Opción inválida, vuelve a ingresar")
