@@ -75,7 +75,6 @@ class TestGestorPartida:
         siguiente = gestor._obtener_siguiente_cacho()
         assert siguiente == gestor.lista_cachos[1]
 
-
     def test_siguiente_turno_antihorario(self):
         """
         obtener el cacho que juega en el siguiente turno, en sentido antihorario
@@ -116,45 +115,48 @@ class TestGestorPartida:
         ganador = gestor._obtener_ganador()    
         assert terminada == True
         assert ganador == gestor.lista_cachos[0]
+    
+    # TODO: hay que adaptar estos tests para que se integren con los otros modulos
+    # (ya no se usa interfaz, no se pide input y el flujo de juego no está en gestor_partida)
 
-    def test_manejar_apuesta_valida_y_actualiza_ultimo_apostador(self, mocker):
-        gestor = GestorPartida(2)
-        gestor.cacho_actual = gestor.lista_cachos[0]
-        gestor.jugador_idx = 0
-        gestor.apuesta_actual = (1, 2)
-    
-        mock_apuesta = (2, 2)
-        mocker.patch.object(gestor.interfaz, 'pedir_apuesta', return_value=mock_apuesta)
-    
-        gestor._manejar_apuesta()
-    
-        assert gestor.apuesta_actual == mock_apuesta
-        assert gestor.ultimo_apostador == gestor.cacho_actual
-
-    def test_manejar_duda_llama_arbitro_y_actualiza_proxima_ronda(self, mocker):
-        gestor = GestorPartida(2)
-        gestor.cacho_actual = gestor.lista_cachos[0]
-        gestor.ultimo_apostador = gestor.lista_cachos[1]
-        gestor.apuesta_actual = (2, 3)
-    
-        mocker.patch.object(gestor.interfaz, 'imprimir_revelacion')
-        mocker.patch('builtins.input', return_value=None)
-        mocker.patch.object(gestor.arbitro_ronda, 'manejar_duda', return_value=gestor.lista_cachos[0])
-    
-        gestor._manejar_duda()
-    
-        assert gestor.iniciador_proxima_ronda == gestor.lista_cachos[0]
-
-    def test_manejar_calzar_gana_o_pierde_dado(self, mocker):
-        gestor = GestorPartida(2)
-        gestor.cacho_actual = gestor.lista_cachos[0]
-        gestor.jugador_idx = 0
-        gestor.apuesta_actual = (2, 3)
-    
-        mocker.patch.object(gestor.interfaz, 'imprimir_revelacion')
-        mocker.patch('builtins.input', return_value=None)
-        mocker.patch.object(gestor.arbitro_ronda, 'manejar_calzar', return_value=True)
-    
-        gestor._manejar_calzar()
-    
-        assert gestor.iniciador_proxima_ronda == gestor.cacho_actual
+    # def test_manejar_apuesta_valida_y_actualiza_ultimo_apostador(self, mocker):
+    #     gestor = GestorPartida(2)
+    #     gestor.cacho_actual = gestor.lista_cachos[0]
+    #     gestor.jugador_idx = 0
+    #     gestor.apuesta_actual = (1, 2)
+    # 
+    #     mock_apuesta = (2, 2)
+    #     mocker.patch.object(gestor.interfaz, 'pedir_apuesta', return_value=mock_apuesta)
+    # 
+    #     gestor._manejar_apuesta()
+    # 
+    #     assert gestor.apuesta_actual == mock_apuesta
+    #     assert gestor.ultimo_apostador == gestor.cacho_actual
+    #
+    # def test_manejar_duda_llama_arbitro_y_actualiza_proxima_ronda(self, mocker):
+    #     gestor = GestorPartida(2)
+    #     gestor.cacho_actual = gestor.lista_cachos[0]
+    #     gestor.ultimo_apostador = gestor.lista_cachos[1]
+    #     gestor.apuesta_actual = (2, 3)
+    # 
+    #     mocker.patch.object(gestor.interfaz, 'imprimir_revelacion')
+    #     mocker.patch('builtins.input', return_value=None)
+    #     mocker.patch.object(gestor.arbitro_ronda, 'manejar_duda', return_value=gestor.lista_cachos[0])
+    # 
+    #     gestor._manejar_duda()
+    # 
+    #     assert gestor.iniciador_proxima_ronda == gestor.lista_cachos[0]
+    #
+    # def test_manejar_calzar_gana_o_pierde_dado(self, mocker):
+    #     gestor = GestorPartida(2)
+    #     gestor.cacho_actual = gestor.lista_cachos[0]
+    #     gestor.jugador_idx = 0
+    #     gestor.apuesta_actual = (2, 3)
+    # 
+    #     mocker.patch.object(gestor.interfaz, 'imprimir_revelacion')
+    #     mocker.patch('builtins.input', return_value=None)
+    #     mocker.patch.object(gestor.arbitro_ronda, 'manejar_calzar', return_value=True)
+    # 
+    #     gestor._manejar_calzar()
+    # 
+    #     assert gestor.iniciador_proxima_ronda == gestor.cacho_actual
