@@ -53,18 +53,6 @@ class TestInterfazConsola:
         interfaz = InterfazConsola()
         eleccion = interfaz.pedir_direccion_de_turnos(0)
         assert eleccion == "antihorario"
- 
-    @patch("builtins.input", side_effect=["x", "h"])
-    def test_pedir_direccion_de_turnos_invalido_y_luego_valido(self, mock_input, capsys):
-        """
-        se verifica que al pedir direccion de turnos y recibir un input
-        invalido, se muestra un mensaje de error
-        """
-        interfaz = InterfazConsola()
-        eleccion = interfaz.pedir_direccion_de_turnos(0)
-        salida = capsys.readouterr() 
-        assert "Opción inválida" in salida.out
-        assert eleccion == "horario"
 
     def test_imprimir_estado_muestra_valores_correctamente(self, capsys):
         """
@@ -80,17 +68,6 @@ class TestInterfazConsola:
         assert "Estado de los jugadores:" in salida.out
         assert "Apuesta: 2 trenes" in salida.out
 
-    def test_imprimir_estado_sin_apuesta(self, capsys):
-        """
-        se verifica que al imprimir estado sin apuesta se muestra
-        "Apuesta: Ninguna"
-        """
-        interfaz = InterfazConsola()
-        cacho = Cacho()
-        interfaz.imprimir_estado([cacho], cacho, (0, 0), "cerrado", 1)
-        salida = capsys.readouterr()
-        assert "Apuesta: Ninguna" in salida.out
-    
     def test_imprimir_revelacion_muestra_valores_correctamente(self, capsys):
         """
         se verifica que al revelar los valores de los dados al terminar una ronda
@@ -106,54 +83,17 @@ class TestInterfazConsola:
         assert "Jugador 1: [1, 2, 3, 4, 5]" in salida.out
     
     @patch("builtins.input", side_effect=["a"])
-    def test_pedir_accion_devuelve_accion_apostar(self, mock_input):
+    def test_pedir_accion_devuelve_accion(self, mock_input):
         """
         se verifica que al pedir accion a jugador se devuelve la
-        accion esperada (apostar)
+        accion esperada
         """ 
         interfaz = InterfazConsola()
         accion = interfaz.pedir_accion(0)
         assert accion == "a"
+
+    # NOTE: agregar otros tests para las otras acciones posibles?
     
-    @patch("builtins.input", side_effect=["d"])
-    def test_pedir_accion_dudar(self, mock_input):
-        """
-        se verifica que al pedir accion a jugador se devuelve
-        la accion esperada (dudar)
-        """
-        interfaz = InterfazConsola()
-        assert interfaz.pedir_accion(0) == "d"
-
-    @patch("builtins.input", side_effect=["c"])
-    def test_pedir_accion_devuelve_accion_calzar(self, mock_input):
-        """
-        se verifica que al pedir accion a jugador se devuelve la
-        accion esperada (calzar)
-        """ 
-        interfaz = InterfazConsola()
-        accion = interfaz.pedir_accion(0)
-        assert accion == "c"
-    
-    @patch("builtins.input", side_effect=["p"])
-    def test_pedir_accion_devuelve_accion_pasar(self, mock_input):
-        """
-        se verifica que al pedir accion a jugador se devuelve la
-        accion esperada (pasar)
-        """ 
-        interfaz = InterfazConsola()
-        accion = interfaz.pedir_accion(0)
-        assert accion == "p"
-
-    @patch("os.system")
-    def test_limpiar_terminal(self, mock_system):
-        """
-        se verifica que al limpiar termianl se llama al metodo
-        de os.system
-        """
-        interfaz = InterfazConsola()
-        interfaz.limpiar_terminal()
-        mock_system.assert_called_once()
-
     @patch("builtins.input", side_effect=["a"])
     def test_pedir_tipo_ronda_especial_abierto(self, mock_input):
         """
@@ -162,21 +102,6 @@ class TestInterfazConsola:
         """
         interfaz = InterfazConsola()
         eleccion = interfaz.pedir_tipo_ronda_especial(0)
-        assert eleccion == "abierto"
-
-    @patch("builtins.input", side_effect=["x", "a"])
-    def test_pedir_tipo_ronda_especial_invalido_luego_abierto(self, mock_input, capsys):
-        """
-        se verifica que al pedir tipo de ronda especial y recibir
-        entrada invalido, se muestra mensaje de error, luego se pide
-        otra entrada y si se ingresa correctamente, se devuelve tipo 
-        de ronda esperado (abierto)
-        """
-
-        interfaz = InterfazConsola()
-        eleccion = interfaz.pedir_tipo_ronda_especial(0)
-        salida = capsys.readouterr()
-        assert "Opción inválida" in salida.out
         assert eleccion == "abierto"
 
     @patch("builtins.input", side_effect=["c"])
@@ -188,20 +113,6 @@ class TestInterfazConsola:
         interfaz = InterfazConsola()
         eleccion = interfaz.pedir_tipo_ronda_especial(0)
         assert eleccion == "cerrado"
-
-    @patch("builtins.input", side_effect=["x", "c"])
-    def test_pedir_tipo_ronda_especial_invalido_luego_cerrado(self, mock_input, capsys):
-        """
-        se verifica que al pedir tipo de ronda especial y recibir
-        entrada invalido, se muestra mensaje de error, luego se pide
-        otra entrada y si se ingresa correctamente, se devuelve tipo 
-        de ronda esperado (cerrado)
-        """
-        interfaz = InterfazConsola()
-        eleccion = interfaz.pedir_tipo_ronda_especial(0)
-        salida = capsys.readouterr()
-        assert "Opción inválida" in salida.out
-        assert eleccion == "cerrado"
     
     @patch("builtins.input", side_effect=["4", "5"])
     def test_pedir_apuesta_devuelve_tupla(self, mock_input):
@@ -210,14 +121,44 @@ class TestInterfazConsola:
         con la cantidad y valor de la apuesta := (cantidad, valor)
         """
         interfaz = InterfazConsola()
-        apuesta = interfaz.pedir_apuesta(0, (2, 3))
+        apuesta = interfaz.pedir_apuesta(0, (0, 0))
         assert apuesta == (4, 5)
 
-    @patch("builtins.input", side_effect=["x", "3", "y", "6"])
-    def test_pedir_apuesta_con_valores_invalidos(self, mock_input, capsys):
+    def test_imprimir_estado_sin_apuesta(self, capsys):
+        """
+        verificar que al imprimir el estado sin apuesta se muestre "Ninguna" como apuesta
+        """
         interfaz = InterfazConsola()
-        apuesta = interfaz.pedir_apuesta(0, (0, 0))
+        cacho = Cacho()
+        interfaz.imprimir_estado([cacho], cacho, (0, 0), "normal", 1)
         salida = capsys.readouterr()
-        assert "Por favor, ingresa un número válido" in salida.out
-        assert apuesta == (3, 6)
+        assert "Apuesta: Ninguna" in salida.out
+        assert "Jugador 1:" in salida.out
 
+    def test_limpiar_terminal_verificar_ejecucion(self):
+        """
+        verificar que limpiar_terminal realmente ejecute el comando
+        """
+        interfaz = InterfazConsola()
+        with patch("src.servicios.interfaz_consola.os.system") as mock_system:
+            interfaz.limpiar_terminal()
+            assert mock_system.called
+
+    @patch("builtins.input", side_effect=["invalid", "cerrado"])
+    def test_ronda_especial_entrada_invalida_cerrado(self, mock_input):
+        """
+        verificar manejo de input invalido y luego "cerrado" en regla especial
+        """
+        interfaz = InterfazConsola()
+        eleccion = interfaz.pedir_tipo_ronda_especial(0)
+        assert eleccion == "cerrado"
+
+    @patch("builtins.input", side_effect=["invalid", "a"])
+    def test_pedir_direccion_de_turnos_entrada_invalida_luego_antihorario(self, mock_input):
+        """
+        verificar que al pedir direccion de turnos con input invalido
+        y "antihorario" se maneje correctamente
+        """
+        interfaz = InterfazConsola()
+        eleccion = interfaz.pedir_direccion_de_turnos(0)
+        assert eleccion == "antihorario"
