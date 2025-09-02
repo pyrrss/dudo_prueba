@@ -150,7 +150,124 @@ class TestGestorPartida:
         assert gestor.estado_especial_pendiente is False # -> se desactiva
         assert gestor.tipo_ronda_especial_pendiente is None # -> se resetea
 
-    
+    def test_obtener_siguiente_cacho_sin_direccion(self):
+        """
+        cuando no se ha establecido direccion por defecto usa horario
+        """
+        gestor = GestorPartida(3)
+        gestor.cacho_actual = gestor.lista_cachos[0]
+        gestor.direccion = None
+        
+        siguiente = gestor.obtener_siguiente_cacho()
+        assert siguiente == gestor.lista_cachos[1]
+        assert gestor.direccion == "horario"
 
+    def test_obtener_siguiente_cacho_con_cachos_sin_dados(self):
+        """
+        si todos los cachos no tienen dados retorna None
+        """
+        gestor = GestorPartida(2)
+        gestor.cacho_actual = gestor.lista_cachos[0]
+        for cacho in gestor.lista_cachos:
+            cacho.dados = []
+        
+        resultado = gestor.obtener_siguiente_cacho()
+        assert resultado is None
 
-    
+    def test_cachos_con_un_dado_retorna_none(self):
+        """
+        si ningun cacho tiene exactamente un dado retorna None
+        """
+        gestor = GestorPartida(2)
+        gestor.lista_cachos[0].dados = [Mock(), Mock()]
+        gestor.lista_cachos[1].dados = [Mock(), Mock(), Mock()]
+        
+        resultado = gestor.verificar_cachos_con_un_dado()
+        assert resultado is None
+
+    def test_iniciar_ronda_sin_estado_especial_pendiente(self):
+        """
+        si no hay estado especial pendiente se setea en False
+        """
+        gestor = GestorPartida(2)
+        gestor.estado_especial_pendiente = False
+        gestor.estado_especial = True  
+        gestor.tipo_ronda_especial = "abierto"
+        
+        gestor.iniciar_ronda()
+        
+        assert gestor.estado_especial is False
+        assert gestor.tipo_ronda_especial is None
+        assert gestor.cacho_que_obligo is None
+
+    def test_ronda_especial_cuando_cacho_tiene_un_dado(self):
+        """
+        cuando un cacho tiene un dado y no ha usado especial se activa la ronda especial
+        """
+        gestor = GestorPartida(2)
+        cacho_con_un_dado = gestor.lista_cachos[0]
+        cacho_con_un_dado.dados = [Mock()] 
+        
+        gestor.verificar_ronda_especial(cacho_con_un_dado)
+        
+        assert gestor.cacho_que_obligo == cacho_con_un_dado
+        assert gestor.estado_especial_pendiente is True
+        assert cacho_con_un_dado in gestor.cachos_que_usaron_especial
+
+    def test_actualizar_visibilidad_dados_ronda_abierta(self):
+        """
+        en una ronda abierta jugador actual no ve sus dados pero los otros si ven los suyos
+        """
+        gestor = GestorPartida(3)
+        gestor.estado_especial = True
+        gestor.tipo_ronda_especial = "abierto"
+        gestor.cacho_actual = gestor.lista_cachos[0]
+        
+        for cacho in gestor.lista_cachos:
+            cacho.mostrar_dados = Mock()
+            cacho.ocultar_dados = Mock()
+        
+        gestor.actualizar_visibilidad_dados()
+        for cacho in gestor.lista_cachos:
+            cacho.ocultar_dados.assert_called()
+        
+        gestor.lista_cachos[1].mostrar_dados.assert_called()
+        gestor.lista_cachos[2].mostrar_dados.assert_called()
+        gestor.lista_cachos[0].mostrar_dados.assert_not_called()
+
+    def test_actualizar_visibilidad_dados_ronda_cerrada(self):
+        """
+        en una ronda cerrada solo el obligador ve sus dados cuando es su turno
+        """
+        gestor = GestorPartida(2)
+        gestor.estado_especial = True
+        gestor.tipo_ronda_especial = "cerrado"
+        gestor.cacho_actual = gestor.lista_cachos[0]
+        gestor.cacho_que_obligo = gestor.lista_cachos[0]
+        
+        for cacho in gestor.lista_cachos:
+            cacho.mostrar_dados = Mock()
+            cacho.ocultar_dados = Mock()
+        gestor.actualizar_visibilidad_dados()
+        
+        for cacho in gestor.lista_cachos:
+            cacho.ocultar_dados.assert_called()
+        gestor.lista_cachos[0].mostrar_dados.assert_called()
+        gestor.lista_cachos[1].mostrar_dados.assert_not_called()
+
+    def test_actualizar_visibilidad_dados_ronda_normal(self):
+        """
+        en una ronda normal solo el jugador actual ve sus dados
+        """
+        gestor = GestorPartida(2)
+        gestor.estado_especial = False
+        gestor.cacho_actual = gestor.lista_cachos[0]
+        for cacho in gestor.lista_cachos:
+            cacho.mostrar_dados = Mock()
+            cacho.ocultar_dados = Mock()
+        gestor.actualizar_visibilidad_dados()
+        
+        for cacho in gestor.lista_cachos:
+            cacho.ocultar_dados.assert_called()
+        gestor.lista_cachos[0].mostrar_dados.assert_called()
+        gestor.lista_cachos[1].mostrar_dados.assert_not_called()
