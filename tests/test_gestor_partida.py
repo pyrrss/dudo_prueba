@@ -1,162 +1,159 @@
-from unittest.mock import Mock, patch
 from src.juego.gestor_partida import GestorPartida
+from unittest.mock import Mock, patch
 
-class TestGestorPartida:
+def test_crear_gestor_partida():
+    """
+    crear GestorPartida con numero de jugadores
+    """
+    gestor = GestorPartida(3)
+    assert len(gestor.lista_cachos) == 3
+    assert gestor.cacho_actual is None
+    assert gestor.direccion is None
 
-    def test_crear_partida_con_cachos(self):
-        """
-        crear una partida con cachos como jugadores
-        """
-        cantidad_jugadores = 3
-    
-        # act y asserts
-        gestor = GestorPartida(cantidad_jugadores)
-        assert len(gestor.lista_cachos) == 3
-        for cacho in gestor.lista_cachos:
-            assert cacho.get_cantidad_dados() == 5
-        assert gestor.cacho_actual is None
-        assert gestor.direccion is None
+def test_establecer_direccion():
+    """
+    establecer direccion de juego
+    """
+    gestor = GestorPartida(2)
+    gestor.establecer_direccion("horario")
+    assert gestor.direccion == "horario"
 
-    def test_determinar_cacho_inicial_sin_empate(self, mocker):
-        """
-        el cacho con el dado más alto inicia la partida
-        """
-        gestor = GestorPartida(3)
-    
-        # mocks para no usar testear con randoms 
-        mock_dados = [3, 6, 4]  
-    
-        with patch('src.juego.gestor_partida.GeneradorAleatorio.generar_valor_aleatorio', side_effect=mock_dados): # use esto with patch con un mock para reemplazar los numeros random, no se si hay una mejor manera pero lo dejo asi por mientras :D
-            # act
-            cacho_inicial = gestor._determinar_cacho_inicial()
-    
-        # assert
-        assert cacho_inicial == gestor.cacho_actual
+def test_cambiar_cacho_actual():
+    """
+    cambiar cacho actual
+    """
+    gestor = GestorPartida(3)
+    nuevo_cacho = gestor.lista_cachos[1]
+    gestor.cambiar_cacho_actual(nuevo_cacho)
+    assert gestor.cacho_actual == nuevo_cacho
+    assert gestor.jugador_idx == 1
 
+def test_manejar_apuesta_valida():
+    """
+    manejar apuesta valida
+    """
+    gestor = GestorPartida(2)
+    gestor.cacho_actual = gestor.lista_cachos[0]
+    gestor.apuesta_actual = (1, 2)
+    resultado = gestor.manejar_apuesta((2, 3))
+    assert resultado == True
+    assert gestor.apuesta_actual == (2, 3)
 
-    def test_determinar_cacho_inicial_con_empate(self, mocker):
-        """
-        en caso de empate se vuelve a tirar dados solo para los empatados
-        """
-        # Arrange
-        gestor = GestorPartida(2)
-    
-        # mock para randoms
-        mock_dados = [5, 5, 2, 6] 
-    
-        with patch('src.juego.gestor_partida.GeneradorAleatorio.generar_valor_aleatorio', side_effect=mock_dados): # lo mismo por aca
-            # act
-            cacho_inicial = gestor._determinar_cacho_inicial()
-    
-        # assert
-        assert cacho_inicial == gestor.cacho_actual
+def test_manejar_apuesta_invalida():
+    """
+    manejar apuesta invalida
+    """
+    gestor = GestorPartida(2)
+    gestor.cacho_actual = gestor.lista_cachos[0]
+    gestor.apuesta_actual = (3, 4)
+    resultado = gestor.manejar_apuesta((2, 2))
+    assert resultado == False
 
-    def test_establecer_direccion(self):
-        """
-        establecer la direccion de la partida
-        """
-        gestor = GestorPartida(2)
-    
-        # acts y asserts
-        gestor._establecer_direccion("antihorario")
-        assert gestor.direccion == "antihorario"
-        gestor._establecer_direccion("horario")
-        assert gestor.direccion == "horario"
+def test_obtener_siguiente_cacho_horario():
+    """
+    obtener siguiente cacho jugando en direccion horaria
+    """
+    gestor = GestorPartida(3)
+    gestor.cacho_actual = gestor.lista_cachos[0]
+    gestor.direccion = "horario"
+    siguiente = gestor.obtener_siguiente_cacho()
+    assert siguiente == gestor.lista_cachos[1]
 
-    def test_siguiente_turno_horario(self):
-        """
-        obtener el cacho que juega en el siguiente turno, en sentido horario
-        """
-        gestor = GestorPartida(3)
-        gestor.direccion = "horario"
-        gestor.cacho_actual = gestor.lista_cachos[0]
-    
-        # act y assert
-        siguiente = gestor._obtener_siguiente_cacho()
-        assert siguiente == gestor.lista_cachos[1]
+def test_obtener_siguiente_cacho_antihorario():
+    """
+    obtener siguiente cacho jugando en direccion antihoraria
+    """
+    gestor = GestorPartida(3)
+    gestor.cacho_actual = gestor.lista_cachos[0]
+    gestor.direccion = "antihorario"
+    siguiente = gestor.obtener_siguiente_cacho()
+    assert siguiente == gestor.lista_cachos[2]
 
-    def test_siguiente_turno_antihorario(self):
-        """
-        obtener el cacho que juega en el siguiente turno, en sentido antihorario
-        """
-        gestor = GestorPartida(3)
-        gestor.direccion = "antihorario"
-        gestor.cacho_actual = gestor.lista_cachos[0]
-    
-        # act y assert
-        siguiente = gestor._obtener_siguiente_cacho()
-        assert siguiente == gestor.lista_cachos[2] 
+def test_partida_terminada():
+    """
+    verificar si partida termino
+    """
+    gestor = GestorPartida(3)
+    gestor.lista_cachos[1].dados = []
+    gestor.lista_cachos[2].dados = []
+    assert gestor.partida_terminada() == True
 
-    def test_detectar_cachos_con_un_dado(self):
-        """
-        detectar cuando un cacho queda con un solo dado
-        """
-        gestor = GestorPartida(2)
+def test_obtener_ganador():
+    """
+    obtener ganador cuando termina partida
+    """
+    gestor = GestorPartida(3)
+    gestor.lista_cachos[1].dados = []
+    gestor.lista_cachos[2].dados = []
+    ganador = gestor.obtener_ganador()
+    assert ganador == gestor.lista_cachos[0]
 
-        # mock cacho con un dado
-        gestor.lista_cachos[1].dados = [Mock()]
-    
-        # act y assert
-        cacho_un_dado = gestor._verificar_cachos_con_un_dado()
-        assert cacho_un_dado == gestor.lista_cachos[1]
-    
-    def test_partida_terminada(self):
-        """
-        la partida termina cuando solo queda un cacho con dados y es el ganador
-        """
-        gestor = GestorPartida(3)
-    
-        # Simular que cacho1 y cacho2 pierden todos sus dados
-        gestor.lista_cachos[1].dados = []  # Sin dados
-        gestor.lista_cachos[2].dados = []  # Sin dados
-    
-        # acts y asserts
-        terminada = gestor._partida_terminada()
-        ganador = gestor._obtener_ganador()    
-        assert terminada == True
-        assert ganador == gestor.lista_cachos[0]
-    
-    # TODO: hay que adaptar estos tests para que se integren con los otros modulos
-    # (ya no se usa interfaz, no se pide input y el flujo de juego no está en gestor_partida)
+def test_verificar_cachos_con_un_dado():
+    """
+    verificar cachos con un solo dado
+    """
+    gestor = GestorPartida(2)
+    gestor.lista_cachos[1].dados = [Mock()]
+    cacho_un_dado = gestor.verificar_cachos_con_un_dado()
+    assert cacho_un_dado == gestor.lista_cachos[1]
 
-    # def test_manejar_apuesta_valida_y_actualiza_ultimo_apostador(self, mocker):
-    #     gestor = GestorPartida(2)
-    #     gestor.cacho_actual = gestor.lista_cachos[0]
-    #     gestor.jugador_idx = 0
-    #     gestor.apuesta_actual = (1, 2)
-    # 
-    #     mock_apuesta = (2, 2)
-    #     mocker.patch.object(gestor.interfaz, 'pedir_apuesta', return_value=mock_apuesta)
-    # 
-    #     gestor._manejar_apuesta()
-    # 
-    #     assert gestor.apuesta_actual == mock_apuesta
-    #     assert gestor.ultimo_apostador == gestor.cacho_actual
-    #
-    # def test_manejar_duda_llama_arbitro_y_actualiza_proxima_ronda(self, mocker):
-    #     gestor = GestorPartida(2)
-    #     gestor.cacho_actual = gestor.lista_cachos[0]
-    #     gestor.ultimo_apostador = gestor.lista_cachos[1]
-    #     gestor.apuesta_actual = (2, 3)
-    # 
-    #     mocker.patch.object(gestor.interfaz, 'imprimir_revelacion')
-    #     mocker.patch('builtins.input', return_value=None)
-    #     mocker.patch.object(gestor.arbitro_ronda, 'manejar_duda', return_value=gestor.lista_cachos[0])
-    # 
-    #     gestor._manejar_duda()
-    # 
-    #     assert gestor.iniciador_proxima_ronda == gestor.lista_cachos[0]
-    #
-    # def test_manejar_calzar_gana_o_pierde_dado(self, mocker):
-    #     gestor = GestorPartida(2)
-    #     gestor.cacho_actual = gestor.lista_cachos[0]
-    #     gestor.jugador_idx = 0
-    #     gestor.apuesta_actual = (2, 3)
-    # 
-    #     mocker.patch.object(gestor.interfaz, 'imprimir_revelacion')
-    #     mocker.patch('builtins.input', return_value=None)
-    #     mocker.patch.object(gestor.arbitro_ronda, 'manejar_calzar', return_value=True)
-    # 
-    #     gestor._manejar_calzar()
-    # 
-    #     assert gestor.iniciador_proxima_ronda == gestor.cacho_actual
+def test_manejar_duda(mocker):
+    """
+    manejar duda con mock
+    """
+    gestor = GestorPartida(2)
+    gestor.cacho_actual = gestor.lista_cachos[0]
+    gestor.ultimo_apostador = gestor.lista_cachos[1]
+    gestor.apuesta_actual = (2, 3)
+    
+    mock_arbitro = mocker.patch.object(gestor.arbitro_ronda, 'manejar_duda')
+    mock_arbitro.return_value = gestor.lista_cachos[0]
+    
+    resultado = gestor.manejar_duda()
+    assert resultado == gestor.lista_cachos[0]
+    mock_arbitro.assert_called_once()
+
+def test_manejar_calzar(mocker):
+    """
+    manejar calzar con mock
+    """
+    gestor = GestorPartida(2)
+    gestor.cacho_actual = gestor.lista_cachos[0]
+    gestor.ultimo_apostador = gestor.lista_cachos[1]
+    gestor.apuesta_actual = (2, 3)
+    
+    mock_puede_calzar = mocker.patch.object(gestor.arbitro_ronda, 'puede_calzar')
+    mock_puede_calzar.return_value = True
+    
+    mock_manejar_calzar = mocker.patch.object(gestor.arbitro_ronda, 'manejar_calzar')
+    mock_manejar_calzar.return_value = True
+    
+    resultado = gestor.manejar_calzar()
+    assert resultado == True
+    mock_puede_calzar.assert_called_once()
+    mock_manejar_calzar.assert_called_once()
+
+def test_determinar_cacho_inicial():
+    """
+    determinar cacho inicial con mock
+    """
+    gestor = GestorPartida(3)
+    
+    with patch('src.juego.gestor_partida.GeneradorAleatorio.generar_valor_aleatorio', side_effect=[3, 6, 4]):
+        cacho_inicial = gestor.determinar_cacho_inicial()
+    
+    assert cacho_inicial == gestor.lista_cachos[1]  # El que saco 6
+    assert gestor.cacho_actual == gestor.lista_cachos[1]
+
+def test_manejar_apuesta_sin_parametro():
+    """
+    manejar apuesta sin proporcionar nueva apuesta
+    """
+    gestor = GestorPartida(2)
+    gestor.cacho_actual = gestor.lista_cachos[0]
+    
+    try:
+        gestor.manejar_apuesta()
+        assert False, "Deberia lanzar excepcion"
+    except ValueError as e:
+        assert "Se debe proporcionar una nueva apuesta" in str(e)
