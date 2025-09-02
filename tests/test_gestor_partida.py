@@ -158,3 +158,29 @@ class TestGestorPartida:
         gestor._manejar_calzar()
     
         assert gestor.iniciador_proxima_ronda == gestor.cacho_actual
+
+    def test_inicio_ronda_con_especial_pendiente(self, mocker):
+        gestor = GestorPartida(3)
+        gestor.estado_especial_pendiente = True
+        gestor.tipo_ronda_especial_pendiente = "abierto"
+        mocker.patch.object(gestor.interfaz, 'pedir_tipo_ronda_especial', return_value="abierto")
+        gestor._iniciar_ronda()
+
+        assert gestor.estado_especial is True
+        assert gestor.tipo_ronda_especial == "abierto"
+        assert gestor.estado_especial_pendiente is False
+        assert gestor.tipo_ronda_especial_pendiente is None
+
+    def test_manejar_apuesta_invalida(self, mocker):
+        gestor = GestorPartida(2)
+        gestor.cacho_actual = gestor.lista_cachos[0]
+        gestor.jugador_idx = 0
+        gestor.apuesta_actual = (3, 4)
+
+        mocker.patch.object(gestor.interfaz,'pedir_apuesta',side_effect=[(2, 5), (4, 1)])
+
+        mocker.patch('builtins.print')
+        gestor._manejar_apuesta()
+        assert gestor.apuesta_actual == (4, 1)
+        assert gestor.ultimo_apostador == gestor.cacho_actual
+        assert gestor.interfaz.pedir_apuesta.call_count == 2
