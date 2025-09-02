@@ -23,7 +23,7 @@ class GestorPartida:
         self.cacho_que_obligo = None
         self.cachos_que_usaron_especial = set()
 
-    def _determinar_cacho_inicial(self) -> Cacho:
+    def determinar_cacho_inicial(self) -> Cacho:
         cachos_participantes = self.lista_cachos.copy()
 
         while True: # -> hasta que no haya un ganador
@@ -40,10 +40,10 @@ class GestorPartida:
             # -> si hay empate (solo empatados siguen participando)
             cachos_participantes = ganadores
 
-    def _establecer_direccion(self, direccion: str) -> None:
+    def establecer_direccion(self, direccion: str) -> None:
         self.direccion = direccion
 
-    def _obtener_siguiente_cacho(self) -> Cacho:
+    def obtener_siguiente_cacho(self) -> Cacho:
         if self.direccion is None:
             self.direccion = "horario"
         indice_actual = self.lista_cachos.index(self.cacho_actual)
@@ -60,13 +60,13 @@ class GestorPartida:
                 return siguiente_cacho
         return None
 
-    def _verificar_cachos_con_un_dado(self) -> Cacho:
+    def verificar_cachos_con_un_dado(self) -> Cacho:
         for cacho in self.lista_cachos:
             if cacho.get_cantidad_dados() == 1:
                 return cacho
         return None
 
-    def _iniciar_ronda(self) -> None:
+    def iniciar_ronda(self) -> None:
         self.apuesta_actual = (0, 0)
         self.ultimo_apostador = None
 
@@ -79,31 +79,32 @@ class GestorPartida:
             cacho.ocultar_dados() # -> visibilidad se ajusta luego en cada turno
 
         # -> activar ronda especial si estaba pendiente
-        if getattr(self, "estado_especial_pendiente", False):
+        if self.estado_especial_pendiente:
             self.estado_especial = True
             self.tipo_ronda_especial = self.tipo_ronda_especial_pendiente
             self.estado_especial_pendiente = False
+            self.tipo_ronda_especial_pendiente = None
         else:
             self.estado_especial = False
             self.tipo_ronda_especial = None
             self.cacho_que_obligo = None
 
-    def _partida_terminada(self) -> bool:
+    def partida_terminada(self) -> bool:
         cachos_con_dados = [c for c in self.lista_cachos if c.get_cantidad_dados() > 0]
         return len(cachos_con_dados) <= 1
 
-    def _obtener_ganador(self) -> Cacho:
+    def obtener_ganador(self) -> Cacho:
         cachos_con_dados = [c for c in self.lista_cachos if c.get_cantidad_dados() > 0]
         return cachos_con_dados[0] if cachos_con_dados else None
 
-    def _verificar_ronda_especial(self, cacho: Cacho) -> None:
+    def verificar_ronda_especial(self, cacho: Cacho) -> None:
         if cacho.get_cantidad_dados() == 1 and cacho not in self.cachos_que_usaron_especial:
             self.cacho_que_obligo = cacho
             self.estado_especial_pendiente = True
             self.cachos_que_usaron_especial.add(cacho)
-            self._actualizar_visibilidad_dados()
+            self.actualizar_visibilidad_dados()
 
-    def _actualizar_visibilidad_dados(self) -> None:
+    def actualizar_visibilidad_dados(self) -> None:
         
         for cacho in self.lista_cachos:
             cacho.ocultar_dados()

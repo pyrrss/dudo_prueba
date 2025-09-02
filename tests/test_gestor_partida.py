@@ -28,7 +28,7 @@ class TestGestorPartida:
     
         with patch('src.juego.gestor_partida.GeneradorAleatorio.generar_valor_aleatorio', side_effect=mock_dados): # use esto with patch con un mock para reemplazar los numeros random, no se si hay una mejor manera pero lo dejo asi por mientras :D
             # act
-            cacho_inicial = gestor._determinar_cacho_inicial()
+            cacho_inicial = gestor.determinar_cacho_inicial()
     
         # assert
         assert cacho_inicial == gestor.cacho_actual
@@ -46,7 +46,7 @@ class TestGestorPartida:
     
         with patch('src.juego.gestor_partida.GeneradorAleatorio.generar_valor_aleatorio', side_effect=mock_dados): # lo mismo por aca
             # act
-            cacho_inicial = gestor._determinar_cacho_inicial()
+            cacho_inicial = gestor.determinar_cacho_inicial()
     
         # assert
         assert cacho_inicial == gestor.cacho_actual
@@ -58,9 +58,9 @@ class TestGestorPartida:
         gestor = GestorPartida(2)
     
         # acts y asserts
-        gestor._establecer_direccion("antihorario")
+        gestor.establecer_direccion("antihorario")
         assert gestor.direccion == "antihorario"
-        gestor._establecer_direccion("horario")
+        gestor.establecer_direccion("horario")
         assert gestor.direccion == "horario"
 
     def test_siguiente_turno_horario(self):
@@ -72,7 +72,7 @@ class TestGestorPartida:
         gestor.cacho_actual = gestor.lista_cachos[0]
     
         # act y assert
-        siguiente = gestor._obtener_siguiente_cacho()
+        siguiente = gestor.obtener_siguiente_cacho()
         assert siguiente == gestor.lista_cachos[1]
 
     def test_siguiente_turno_antihorario(self):
@@ -84,7 +84,7 @@ class TestGestorPartida:
         gestor.cacho_actual = gestor.lista_cachos[0]
     
         # act y assert
-        siguiente = gestor._obtener_siguiente_cacho()
+        siguiente = gestor.obtener_siguiente_cacho()
         assert siguiente == gestor.lista_cachos[2] 
 
     def test_detectar_cachos_con_un_dado(self):
@@ -97,7 +97,7 @@ class TestGestorPartida:
         gestor.lista_cachos[1].dados = [Mock()]
     
         # act y assert
-        cacho_un_dado = gestor._verificar_cachos_con_un_dado()
+        cacho_un_dado = gestor.verificar_cachos_con_un_dado()
         assert cacho_un_dado == gestor.lista_cachos[1]
     
     def test_partida_terminada(self):
@@ -111,52 +111,46 @@ class TestGestorPartida:
         gestor.lista_cachos[2].dados = []  # Sin dados
     
         # acts y asserts
-        terminada = gestor._partida_terminada()
-        ganador = gestor._obtener_ganador()    
+        terminada = gestor.partida_terminada()
+        ganador = gestor.obtener_ganador()    
         assert terminada == True
         assert ganador == gestor.lista_cachos[0]
-    
-    # TODO: hay que adaptar estos tests para que se integren con los otros modulos
-    # (ya no se usa interfaz, no se pide input y el flujo de juego no está en gestor_partida)
 
-    # def test_manejar_apuesta_valida_y_actualiza_ultimo_apostador(self, mocker):
-    #     gestor = GestorPartida(2)
-    #     gestor.cacho_actual = gestor.lista_cachos[0]
-    #     gestor.jugador_idx = 0
-    #     gestor.apuesta_actual = (1, 2)
-    # 
-    #     mock_apuesta = (2, 2)
-    #     mocker.patch.object(gestor.interfaz, 'pedir_apuesta', return_value=mock_apuesta)
-    # 
-    #     gestor._manejar_apuesta()
-    # 
-    #     assert gestor.apuesta_actual == mock_apuesta
-    #     assert gestor.ultimo_apostador == gestor.cacho_actual
-    #
-    # def test_manejar_duda_llama_arbitro_y_actualiza_proxima_ronda(self, mocker):
-    #     gestor = GestorPartida(2)
-    #     gestor.cacho_actual = gestor.lista_cachos[0]
-    #     gestor.ultimo_apostador = gestor.lista_cachos[1]
-    #     gestor.apuesta_actual = (2, 3)
-    # 
-    #     mocker.patch.object(gestor.interfaz, 'imprimir_revelacion')
-    #     mocker.patch('builtins.input', return_value=None)
-    #     mocker.patch.object(gestor.arbitro_ronda, 'manejar_duda', return_value=gestor.lista_cachos[0])
-    # 
-    #     gestor._manejar_duda()
-    # 
-    #     assert gestor.iniciador_proxima_ronda == gestor.lista_cachos[0]
-    #
-    # def test_manejar_calzar_gana_o_pierde_dado(self, mocker):
-    #     gestor = GestorPartida(2)
-    #     gestor.cacho_actual = gestor.lista_cachos[0]
-    #     gestor.jugador_idx = 0
-    #     gestor.apuesta_actual = (2, 3)
-    # 
-    #     mocker.patch.object(gestor.interfaz, 'imprimir_revelacion')
-    #     mocker.patch('builtins.input', return_value=None)
-    #     mocker.patch.object(gestor.arbitro_ronda, 'manejar_calzar', return_value=True)
-    # 
-    #     gestor._manejar_calzar()
-    # 
-    #     assert gestor.iniciador_proxima_ronda == gestor.cacho_actual
+    def test_iniciar_ronda_con_iniciador_predefinido(self):
+        """
+        se verifica que si hay un iniciador para la siguiente ronda
+        (que ocurre cuando un jugador pierde/gana un dado), este
+        se setea como el cacho actual al iniciar la ronda
+        """
+        gestor = GestorPartida(2)
+        cacho_iniciador = gestor.lista_cachos[1]
+        gestor.iniciador_proxima_ronda = cacho_iniciador
+
+        gestor.iniciar_ronda() # -> se inicia ronda con iniciador seteado
+
+        assert gestor.cacho_actual == cacho_iniciador
+        assert gestor.iniciador_proxima_ronda is None # -> se limpia lueg # -> se inicia ronda con iniciador seteado
+
+        assert gestor.cacho_actual == cacho_iniciador
+        assert gestor.iniciador_proxima_ronda is None # -> se limpia luegoo
+
+    def test_iniciar_ronda_con_estado_especial_pendiente(self):
+        """
+        se verifica que al iniciar la ronda, si habia estado especial pendiente
+        (porque un jugador la activó en la ronda anterior), se activa
+        """
+        gestor = GestorPartida(2)
+        gestor.estado_especial_pendiente = True
+        gestor.tipo_ronda_especial_pendiente = "abierto"
+
+        gestor.iniciar_ronda()
+
+        assert gestor.estado_especial is True # -> se activa ronda especial 
+        assert gestor.tipo_ronda_especial == "abierto" # -> se activa ronda abierta
+        assert gestor.estado_especial_pendiente is False # -> se desactiva
+        assert gestor.tipo_ronda_especial_pendiente is None # -> se resetea
+
+    
+
+
+    
