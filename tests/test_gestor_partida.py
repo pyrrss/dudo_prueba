@@ -271,3 +271,76 @@ class TestGestorPartida:
             cacho.ocultar_dados.assert_called()
         gestor.lista_cachos[0].mostrar_dados.assert_called()
         gestor.lista_cachos[1].mostrar_dados.assert_not_called()
+
+    def test_flujo_simple_partida_dos_jugadores(self, mocker):
+        """
+        este test simula un flujo simple de una partida con 2 jugadores,
+        donde se inicia la partida, se simulan los turnos y se verifican
+        que los estados intermedios sean los correctos, hasta que un jugador
+        queda sin dados y se define un ganador, terminando la partida
+        """
+        gestor = GestorPartida(2)
+
+        mocker.patch("src.servicios.generador_aleatorio.GeneradorAleatorio.generar_valor_aleatorio", side_effect=[6, 5])
+        cacho_inicial = gestor.determinar_cacho_inicial()
+        gestor.establecer_direccion("horario")
+
+        def agitar_mock(self):
+            num_dados = self.get_cantidad_dados() # -> se generan valores acordes a cantidad de dados
+            if self == gestor.lista_cachos[0]:
+                valores = list(range(1, num_dados + 1))
+            else:
+                valores = list(range(2, 2 + num_dados)) # fuera de dominio?
+            self.set_valores_dados(valores)
+
+        mocker.patch("src.juego.cacho.Cacho.agitar", new=agitar_mock)
+        gestor.iniciar_ronda()
+        assert gestor.cacho_actual == cacho_inicial
+
+        # -- RONDA 1 --
+        # jugador 0 hace una apuesta válida, jugador 1 duda incorrectamente y pierde un dado
+        gestor.apuesta_actual = (2, 2)
+        gestor.ultimo_apostador = gestor.cacho_actual
+        siguiente_cacho = gestor.obtener_siguiente_cacho()
+        assert siguiente_cacho == gestor.lista_cachos[1]
+        perdedor = gestor.arbitro_ronda.manejar_duda(
+                gestor.lista_cachos,
+                gestor.apuesta_actual,
+                gestor.ultimo_apostador,
+                gestor.lista_cachos[1])
+        
+        assert perdedor == gestor.lista_cachos[1]
+        assert gestor.lista_cachos[1].get_cantidad_dados() == 4
+
+        # -> ronda 2
+        # jugador 1 hace apuesta y jugador 0 duda correctamente, jugador 1 pierde un dado
+        gestor.iniciador_proxima_ronda = perdedor # -> quien perdió dado inicia siguiente ronda
+        gestor.iniciar_ronda()
+        assert gestor.cacho_actual == gestor.lista_cachos[1] 
+        
+        gestor.apuesta_actual = (4, 3)
+        gestor.ultimo_apostador = gestor.cacho_actual
+
+        perdedor_ronda2 = gestor.arbitro_ronda.manejar_duda(
+            gestor.lista_cachos,
+            gestor.apuesta_actual,
+            gestor.ultimo_apostador,
+            gestor.lista_cachos[0]
+        )
+        
+        assert perdedor_ronda2 == gestor.lista_cachos[1]
+        assert gestor.lista_cachos[1].get_cantidad_dados() == 3
+
+        # -> forzar que jugador 1 quede con un solo dado
+        gestor.lista_cachos[1].quitar_dado()
+        gestor.lista_cachos[1].quitar_dado()
+        gestor.verificar_ronda_especial(gestor.lista_cachos[1])
+        assert gestor.estado_especial_pendiente is True
+
+        gestor.iniciar_ronda()
+        assert gestor.estado_especial is True
+
+        # -> perder último dado, se define ganador y termina partida
+        gestor.lista_cachos[1].quitar_dado()
+        assert gestor.partida_terminada() is True
+        assert gestor.obtener_ganador() == gestor.lista_cachos[0]
